@@ -139,13 +139,17 @@ class HandlerCallbackConnectionEdit extends HandlerExtended {
 
     protected function handleRename(\TelegramBot\Api\Types\Update &$update) {
         $new_name = $update->getMessage()->getText();
+        $result = false;
+        
         if (!preg_match("/^\//", $new_name)) {
             $this->connection->description = $new_name;
             $this->connection->write();
-            $this->removeKeyboard();
-            $this->unsetPriority();
+            $result = true;
         }
-        return true;
+
+        $this->removeKeyboard();
+        $this->unsetPriority();
+        return $result;
     }
     
     protected function handleDelete($update) {
