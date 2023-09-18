@@ -1,0 +1,22 @@
+{
+    "name": "pio/pio-vpn",
+    "description": "Description of project PioVPN.",
+    "authors": [
+        {
+            "name": "drweb",
+            "email": "pio@pio.su"
+        }
+    ],
+    "require": {
+        "losthost/telle": ">=v1.3.0",
+        "losthost/db": ">= v1.5.0",
+        "phpseclib/phpseclib": "3.0.22"
+    },
+    "autoload": {
+        "psr-4": { "": [
+            "inc/classes", 
+            "inc/classes/model", 
+            "inc/classes/view"
+        ]}
+    }
+}
