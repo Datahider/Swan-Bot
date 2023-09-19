@@ -16,7 +16,7 @@ class HandlerCommandHelp extends losthost\telle\Handler {
     protected function handle(\TelegramBot\Api\Types\Update &$update) : bool {
         \losthost\telle\Bot::$api->sendMessage(
                 Context::$user->id, 
-                __("Инструкции"), "HTML");
+                __("Инструкции"), "HTML", true);
         return true;
     }
 }

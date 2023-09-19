@@ -16,10 +16,12 @@ $lang['ru'] = [
         <<<END
             <u><b>Инструкции по настройке:</b></u> 
     
-            🔸 <b><a href="https://pio.su">Android</a></b>
+            🔸 <b><a href="https://todd-vpn.ru/kak-nastroit/android/">Android</a></b>
             🔸 <b><a href="https://pio.su">iOS</a></b>
             🔸 <b><a href="https://pio.su">MacOS</a></b>
-            🔸 <b><a href="https://pio.su">Windows</a></b>
+            🔸 <b><a href="https://todd-vpn.ru/kak-nastroit/windows/">Windows</a></b>
+    
+            Также инструкции можно получить в <a href="https://t.me/toddVPN">группе поддержки</a> в Телеграм
     
             <u><b>Команды бота:</b></u>
     
