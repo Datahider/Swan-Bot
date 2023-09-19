@@ -15,9 +15,6 @@ $config = [
     'db_name'   => 'dbname',
     'db_prefix' => 'vpn_',
     
-    'workers_count' => 1,               // set 2 to 10 on high load
-    'user_prefix'   => 'u',             // usernames will like u1, u2... u987892 and so on
-    
     'ssh_user'              => 'root',
     'ssh_host'              => 'your-vpn-host',
     'ssh_fingerprint'       => 'ssh-host-public-key',

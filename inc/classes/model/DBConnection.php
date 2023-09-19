@@ -105,10 +105,8 @@ class DBConnection extends DBObjectExtended {
     }
 
     protected function beforeInsert($comment, $data) {
-        if (!$this->prefix && !defined('USER_PREFIX')) {
-            $this->prefix = 'u';
-        } elseif (!$this->prefix) {
-            $this->prefix = USER_PREFIX;
+        if (!$this->prefix) {
+            $this->prefix = (new losthost\telle\BotParam('user_prefix', 'u'))->value;
         }
         parent::beforeInsert($comment, $data);
     }
