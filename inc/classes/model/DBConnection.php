@@ -77,11 +77,11 @@ class DBConnection extends DBObjectExtended {
     
     public function canProlongGrace() {
         
-        $happy_seconds = 3600 * (new losthost\telle\BotParam('happy_hours', 3))->value;
+        $happy_seconds = 3600 * \losthost\telle\Bot::param('happy_hours', 3);
         
         return true
             && $this->userConnectionsCount() == 1 
-            && $this->active_till->getTimestamp() + $happy_seconds >= time();
+            && $this->active_till->getTimestamp() - $happy_seconds <= time();
     }
     
     protected function prolong($days) {

@@ -29,8 +29,7 @@ class HandlerCallbackConnectionEdit extends HandlerExtended {
     protected function check(\TelegramBot\Api\Types\Update &$update) : bool {
 
         return false
-            || $this->checkCallback($update)
-            || $this->checkPriorityUpdate($update);
+            || $this->checkCallback($update);
         
     }
 
@@ -50,6 +49,8 @@ class HandlerCallbackConnectionEdit extends HandlerExtended {
                 || preg_match("/^(prolong)_(\d+)/", $data, $m) 
                         && $this->setValues($m[1], $m[2], $callback->getMessage()->getMessageId()) 
                 || preg_match("/^(delete)_(\d+)/", $data, $m)   
+                        && $this->setValues($m[1], $m[2], $callback->getMessage()->getMessageId()) 
+                || preg_match("/^(rename)_(\d+)/", $data, $m)   
                         && $this->setValues($m[1], $m[2], $callback->getMessage()->getMessageId()) 
                 || preg_match("/^(confirm_delete)_(\d+)/", $data, $m)   
                         && $this->setValues($m[1], $m[2], $callback->getMessage()->getMessageId()) 
@@ -75,28 +76,6 @@ class HandlerCallbackConnectionEdit extends HandlerExtended {
         return true;
     }
     
-    protected function checkPriorityUpdate(\TelegramBot\Api\Types\Update &$update) {
-        if (Context::$session->priority_handler == self::class) {
-            $this->command = Context::$session->command;
-            $this->message_id = Context::$session->data['message_id'];
-            try { // пробуем считать соединение
-                $this->connection = new DBConnection(Context::$session->user, Context::$session->data['connection_id']);
-            } catch (Exception $exc) {
-                // TODO - анализировать исключение
-                // Не наше или удалено. Подчистим за собой 
-                $this->unsetPriority();
-                return false;
-            }
-
-            $message = $update->getMessage();
-            if ($message && $message->getText()) {
-                $this->command = 'rename';
-            }
-            
-            return true;
-        }
-    }
-    
     protected function handle(\TelegramBot\Api\Types\Update &$update) : bool {
 
         return false
@@ -106,7 +85,6 @@ class HandlerCallbackConnectionEdit extends HandlerExtended {
             || $this->command == 'rename'           && $this->handleRename($update)
             || $this->command == 'confirm_delete'   && $this->handleConfirmDelete($update)
             || $this->command == 'cancel_delete'    && $this->handleCancelDelete($update)
-            || $this->command == 'cancel'           && $this->handleCancel($update)
             ;
     }
 
@@ -119,7 +97,6 @@ class HandlerCallbackConnectionEdit extends HandlerExtended {
     }
     
     protected function handleProlong(TelegramBot\Api\Types\Update &$update) {
-        $this->removeKeyboard($this->message_id);
         HandlerPromoCode::askPromoCode($this->connection);
         $this->answerCallback($update);
         return true;
@@ -127,78 +104,32 @@ class HandlerCallbackConnectionEdit extends HandlerExtended {
     
     protected function handleChpass(TelegramBot\Api\Types\Update &$update) {
         $this->connection->password = DBConnection::genPassword();
-        $this->setPriority([
-            'connection_id' => $this->connection->id,
-            'message_id' => $update->getCallbackQuery()->getMessage()->getMessageId(),
-            'keyboard' => $this->kbdMain($this->connection->id)
-        ]);
-        $this->connection->write();
+        $this->connection->write('NEW_PASS', $update->getCallbackQuery()->getMessage()->getMessageId());
         $this->answerCallback($update);
         return true;
     }
 
     protected function handleRename(\TelegramBot\Api\Types\Update &$update) {
-        $new_name = $update->getMessage()->getText();
-        $result = false;
-        
-        if (!preg_match("/^\//", $new_name)) {
-            $this->connection->description = $new_name;
-            $this->connection->write();
-            $result = true;
-        }
-
-        $this->removeKeyboard();
-        $this->unsetPriority();
-        return $result;
+        HandlerConnectionRename::askNewName($this->connection);
+        $this->answerCallback($update);
+        return true;
     }
     
     protected function handleDelete($update) {
         $this->setKeyboardDelete();
-        $this->setPriority([
-            'connection_id' => $this->connection->id,
-            'message_id' => $update->getCallbackQuery()->getMessage()->getMessageId(),
-        ]);
         $this->answerCallback($update);
         return true;
     }
     
     protected function handleCancelDelete(TelegramBot\Api\Types\Update &$update) {
         $this->setKeyboardMain();
-        $this->setPriority([
-            'connection_id' => $this->connection->id,
-            'message_id' => $update->getCallbackQuery()->getMessage()->getMessageId(),
-        ]);
         $this->answerCallback($update);
         return true;
     }
     
-    protected function handleConfirmDelete($update) {
-        $this->setPriority([
-            'connection_id' => $this->connection->id,
-            'message_id' => $update->getCallbackQuery()->getMessage()->getMessageId(),
-        ]);
-        $this->connection->delete();
-        $this->unsetPriority();
+    protected function handleConfirmDelete(TelegramBot\Api\Types\Update &$update) {
+        $this->connection->delete('DELETED', $update->getCallbackQuery()->getMessage()->getMessageId());
         return true;
-    }
-    
-    protected function handleCancel($update) {
-        $this->removeKeyboard($update);
-        $this->unsetPriority();
-        $this->answerCallback($update);
-        return true;
-    }
-    
-    protected function removeKeyboard() {
-        try {
-            losthost\telle\Bot::$api->editMessageReplyMarkup(
-                Context::$user->id, 
-                $this->message_id,
-                null);
-        } catch (\Exception $e) {
-            // TODO - проверять код и текст исключения 400 
-            // Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message
-        }
     }
     
     protected function setKeyboardDelete() {
@@ -243,7 +174,7 @@ class HandlerCallbackConnectionEdit extends HandlerExtended {
             ],
             [
                 [ 'text' => __('Сменить пароль'), 'callback_data' => 'chpass_'. $connection_id],
-                [ 'text' => __('Отмена'), 'callback_data' => 'cancel_'. $connection_id],
+                [ 'text' => __('Переименовать'), 'callback_data' => 'rename_'. $connection_id],
             ]
         ]);
     }

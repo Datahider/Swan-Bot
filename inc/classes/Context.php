@@ -90,7 +90,9 @@ class Context extends losthost\telle\Handler {
     }
     
     protected function initByInlineQuery(\TelegramBot\Api\Types\Inline\InlineQuery &$inline_query) {
-        
+        $from = $inline_query->getFrom();
+        Context::$language_code = $from->getLanguageCode();
+        self::$user = new DBUser($from);
     }
     
     protected function initByMessage(TelegramBot\Api\Types\Message &$message) {

@@ -8,7 +8,7 @@
         }
     ],
     "require": {
-        "losthost/telle": ">=v1.3.0",
+        "losthost/telle": "=v1.4.0",
         "losthost/db": ">= v1.5.0",
         "phpseclib/phpseclib": "3.0.22"
     },

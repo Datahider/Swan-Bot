@@ -13,25 +13,40 @@
 class TrackerConnection extends losthost\DB\DBTracker {
      
     protected $user_id;
-    
+
     public function track(\losthost\DB\DBEvent $event) {
         
         if ($event->comment == 'NEW_LOGIN') {
             $this->updateSecrets();
             return;                         }
+
+        if (preg_match("/NEW_PASS|DELETED/", $event->comment)) {
+            $message_to_edit = $event->data;
+        } else {
+            $message_to_edit = null;
+        }
     
-        $this->user_id = $event->object->user;
-        
         switch ($event->type) {
             case losthost\DB\DBEvent::AFTER_INSERT:
-                $this->showToUser($event->object->asString(DBObjectExtended::FMT_NEW));
+                $this->user_id = $event->object->user;
+                $this->showToUser($event->object->asString(DBObjectExtended::FMT_NEW), $event->object);
                 break;
             case losthost\DB\DBEvent::AFTER_UPDATE:
-                $this->showToUser($event->object->asString(DBObjectExtended::FMT_DEFAULT));
+                $this->user_id = $event->object->user;
+                if (array_search('password', $event->fields) !== false) {
+                    $this->showToUser($event->object->asString('NewPass'), $event->object, true, $message_to_edit);
+                } elseif (array_search('description', $event->fields) !== false) {
+                    $this->showToUser($event->object->asString('NewDescription'), $event->object, false);
+                } elseif (array_search('active_till', $event->fields) !== false) {
+                    $this->showToUser($event->object->asString('NewEndDate'), $event->object, false);
+                } else {
+                    $this->showToUser($event->object->asString(DBObjectExtended::FMT_DEFAULT), $event->object, true);
+                }
                 $this->updateSecrets();
                 break;
             case losthost\DB\DBEvent::INTRAN_DELETE:
-                $this->showToUser($event->object->asString(DBObjectExtended::FMT_DELETED));
+                $this->user_id = $event->object->user;
+                $this->showToUser($event->object->asString(DBObjectExtended::FMT_DELETED), $event->object, false, $message_to_edit);
                 break;
             case losthost\DB\DBEvent::AFTER_DELETE:
                 $this->updateSecrets();
@@ -56,15 +71,20 @@ class TrackerConnection extends losthost\DB\DBTracker {
         $lock->delete();
     }
 
-    protected function showToUser($text) {
-        if (isset(Context::$session) && Context::$session->priority_handler == HandlerCallbackConnectionEdit::class) {
+    static function showToUser($text, $connection, $show_keyboard=false, $message_id=null) {
+        if ($show_keyboard) {
+            $keyboard = HandlerCallbackConnectionEdit::kbdMain($connection->id);
+        } else {
+            $keyboard = null;
+        }
+        if ($message_id !== null) {
             try {
                 losthost\telle\Bot::$api->editMessageText(
-                    Context::$user->id, 
-                    Context::$session->data['message_id'], 
+                    $connection->user, 
+                    $message_id, 
                     $text,
                     "HTML", false,
-                    isset(Context::$session->data['keyboard']) ? Context::$session->data['keyboard'] : null);
+                    $keyboard);
             } catch (\Exception $e) {
                 if ($e->getCode() == 400) {
                     error_log($e->getMessage());
@@ -74,9 +94,10 @@ class TrackerConnection extends losthost\DB\DBTracker {
             }
         } else {
             losthost\telle\Bot::$api->sendMessage(
-                $this->user_id, 
+                $connection->user, 
                 $text,
-                "HTML");
+                "HTML", false, null, 
+                $keyboard);
         }
     }
     
